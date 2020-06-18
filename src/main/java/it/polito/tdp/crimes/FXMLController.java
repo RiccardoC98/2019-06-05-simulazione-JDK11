@@ -5,8 +5,14 @@
 package it.polito.tdp.crimes;
 
 import java.net.URL;
+import java.time.DateTimeException;
+import java.time.Month;
+import java.time.MonthDay;
+import java.util.HashMap;
+import java.util.List;
 import java.util.ResourceBundle;
 
+import it.polito.tdp.crimes.model.Adiacenza;
 import it.polito.tdp.crimes.model.Model;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -14,6 +20,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+
 
 public class FXMLController {
 	private Model model;
@@ -25,13 +32,13 @@ public class FXMLController {
     private URL location;
 
     @FXML // fx:id="boxAnno"
-    private ComboBox<?> boxAnno; // Value injected by FXMLLoader
+    private ComboBox<Integer> boxAnno; // Value injected by FXMLLoader
 
     @FXML // fx:id="boxMese"
-    private ComboBox<?> boxMese; // Value injected by FXMLLoader
+    private ComboBox<java.time.Month> boxMese; // Value injected by FXMLLoader
 
     @FXML // fx:id="boxGiorno"
-    private ComboBox<?> boxGiorno; // Value injected by FXMLLoader
+    private ComboBox<Integer> boxGiorno; // Value injected by FXMLLoader
 
     @FXML // fx:id="btnCreaReteCittadina"
     private Button btnCreaReteCittadina; // Value injected by FXMLLoader
@@ -47,12 +54,57 @@ public class FXMLController {
 
     @FXML
     void doCreaReteCittadina(ActionEvent event) {
-
+    	Integer year = boxAnno.getValue();
+    	txtResult.clear();
+    	
+    	if (year != null) {
+    		model.creaGrafo(year);
+    		txtResult.appendText(model.getDatiGrafo());
+    		
+    		HashMap<Integer, List<Adiacenza>> adiacenze = model.getAdiacenti();
+    		for (Integer i : adiacenze.keySet() ) {
+    			txtResult.appendText("District_ID: " + i + "\n");
+    			txtResult.appendText( adiacenze.get(i).toString() );
+    		}
+    		
+    		boxMese.getItems().addAll( java.time.Month.values() );
+    		
+    		for (int i  = 1; i <= 31; i++ ) {
+    			boxGiorno.getItems().add(i);
+    		}
+    	} else {
+    		txtResult.appendText("Selezionare un anno!\n");
+    		return;
+    	}
+    	   	
     }
 
     @FXML
     void doSimula(ActionEvent event) {
-
+    	Integer giorno = boxGiorno.getValue();
+    	Month mese = boxMese.getValue();
+    	int N;
+    	try {
+    		N = Integer.parseInt(txtN.getText());
+    		if ( N < 1 || N > 10) {
+    			txtResult.appendText("Inserire un N valido!\n");
+    			return;
+    		}
+    	} catch (NumberFormatException nfe) {
+    		txtResult.appendText("Inserire un N valido!\n");
+    		return;
+    	}
+    	
+    	txtResult.clear();
+    	
+    	try {
+    		MonthDay.of(mese, giorno);
+    	} catch (DateTimeException ex) {
+    		txtResult.appendText("Selezionare una combinazione mese-giorno valida!\n");
+    		return;
+    	}
+    	
+    	txtResult.appendText("Eventi mal gestiti: " + model.simulate(giorno, mese.getValue(), N));
     }
 
     @FXML // This method is called by the FXMLLoader when initialization is complete
@@ -69,5 +121,8 @@ public class FXMLController {
     
     public void setModel(Model model) {
     	this.model = model;
+    	boxAnno.getItems().clear();
+    	boxAnno.getItems().addAll( model.listYears() );
+    	
     }
 }
